@@ -21,7 +21,7 @@ nav button[aria-selected=true]{color:var(--ink);border-color:var(--acc)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
 label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:4px}
 input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px}
-.row{display:grid;grid-template-columns:2fr 1.3fr .8fr auto;gap:10px;align-items:end}
+.row{display:grid;grid-template-columns:2fr 1.2fr 1.2fr .7fr auto;gap:10px;align-items:end}
 .row3{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
 @media(max-width:620px){.row,.row3{grid-template-columns:1fr 1fr}}
 button.b{font:inherit;font-weight:600;border:0;border-radius:6px;padding:10px 16px;cursor:pointer;background:var(--acc);color:var(--accink)}
@@ -68,6 +68,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}dialog canvas{max-width:100%;max-heig
     <div class="row">
       <div><label for="nom">Nombre completo</label><input id="nom" autocomplete="off"></div>
       <div><label for="ci">Carnet de identidad</label><input id="ci" autocomplete="off"></div>
+      <div><label for="cel">Celular</label><input id="cel" type="tel" inputmode="tel" autocomplete="off"></div>
       <div><label for="qty">Tickets</label><input id="qty" type="number" min="1" value="1"></div>
       <button class="b" id="add">Vender</button>
     </div><div class="msg" id="m1" role="status"></div></div>
@@ -117,15 +118,16 @@ function say(el,t,ok){$(el).className='msg'+(ok?' ok':'');$(el).textContent=t||'
 async function api(a,d){
   const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({a,t:token},d||{}))});
   const j=await r.json();if(j.error)throw new Error(j.error);return j}
-function mostrar(app){$('login').hidden=app;$('app').hidden=!app;clearInterval(timer);if(app)timer=setInterval(()=>{if(!document.hidden)refrescar()},15000)}
+function mostrar(app){$('login').hidden=app;$('app').hidden=!app;clearInterval(timer);if(app)timer=setInterval(()=>{if(!document.hidden)refrescar()},30000)}
 function salir(msg){token='';try{localStorage.removeItem('rifa_t')}catch(e){}mostrar(false);say('lm',msg||'')}
 async function entrar(){
   say('lm','Verificando…');$('lgo').disabled=true;
   try{const j=await api('login',{u:$('lu').value,p:$('lp').value});token=j.t;try{localStorage.setItem('rifa_t',token)}catch(e){}
-    $('lp').value='';say('lm','');mostrar(true);await refrescar()}
+    $('lp').value='';say('lm','');mostrar(true);D=j.s;render()}
   catch(e){say('lm',e.message)}finally{$('lgo').disabled=false}}
-async function refrescar(){try{D=await api('state');render()}catch(e){if(/Sesi|ingresar/.test(e.message))salir(e.message)}}
+async function refrescar(){try{D=(await api('state')).s;render()}catch(e){if(/Sesi|ingresar/.test(e.message))salir(e.message)}}
 
+async function act(a,d){const j=await api(a,d);D=j.s;render();return j}
 const activas=()=>D.ventas.filter(v=>v.estado!=='ANULADA');
 function render(){
   const adm=D.me.rol==='admin',act=activas(),used=new Set(act.flatMap(v=>v.tickets)),won=new Set(D.ganadores.map(g=>g.ticket));
@@ -135,7 +137,7 @@ function render(){
   $('sMine').textContent=act.filter(v=>v.usuario===D.me.u).reduce((a,v)=>a+v.tickets.length,0);
   const rows=[...D.ventas].reverse();$('empty').hidden=rows.length>0;
   $('list').innerHTML=rows.map(v=>{const n=v.estado==='ANULADA';
-    return `<tr class="${n?'void':''}"><td>${esc(v.comprador)}${n?'<div class="tag">Anulada</div>':''}</td><td>${esc(v.carnet)}</td><td>${v.tickets.map(t=>`<span class="tk ${won.has(t)?'off':''}">${t}</span>`).join('')}</td><td>${esc(v.vendedor)}</td><td>${n?'':`<button class="b g s" data-rc="${v.id}">Constancia</button>`}${adm&&!n?` <button class="x" data-vd="${v.id}">Anular</button>`:''}</td></tr>`}).join('');
+    return `<tr class="${n?'void':''}"><td>${esc(v.comprador)}<div class="tag">${esc(v.celular||'')}</div>${n?'<div class="tag">Anulada</div>':''}</td><td>${esc(v.carnet)}</td><td>${v.tickets.length?v.tickets.map(t=>`<span class="tk ${won.has(t)?'off':''}">${t}</span>`).join(''):'<span class="tag">Fila dañada en la hoja: bórrala</span>'}</td><td>${esc(v.vendedor)}</td><td>${n?'':`<button class="b g s" data-rc="${v.id}">Constancia</button>`}${adm&&!n?` <button class="x" data-vd="${v.id}">Anular</button>`:''}</td></tr>`}).join('');
   const by={};act.forEach(v=>{const o=by[v.usuario]=by[v.usuario]||{n:v.vendedor,c:0,t:0};o.c++;o.t+=v.tickets.length});
   const ids=Object.keys(by).filter(u=>adm||u===D.me.u);
   $('cob').innerHTML=ids.map(u=>`<tr><td>${esc(by[u].n)}${u===D.me.u?' (tú)':''}</td><td>${by[u].c}</td><td>${by[u].t}</td><td><b>${fmt(by[u].t*D.config.precio)}</b></td></tr>`).join('')||'<tr><td colspan="4" class="tag">Sin ventas todavía.</td></tr>';
@@ -147,19 +149,19 @@ function render(){
     $('wins').innerHTML=D.ganadores.map(g=>`<tr><td>${esc(g.premio)}</td><td><span class="tk win">${g.ticket}</span></td><td>${esc(g.comprador)}</td><td>${esc(g.carnet)}</td></tr>`).join('')||'<tr><td colspan="4" class="tag">Todavía no hay ganadores.</td></tr>'}}
 
 async function vender(){
-  const nombre=$('nom').value.trim(),ci=$('ci').value.trim(),q=parseInt($('qty').value,10);
-  if(!nombre||!ci||!(q>0))return say('m1','Completa nombre, carnet y una cantidad mayor a 0.');
+  const nombre=$('nom').value.trim(),ci=$('ci').value.trim(),cel=$('cel').value.trim(),q=parseInt($('qty').value,10);
+  if(!nombre||!ci||!cel||!(q>0))return say('m1','Completa nombre, carnet, celular y una cantidad mayor a 0.');
   $('add').disabled=true;say('m1','Registrando…');
-  try{const j=await api('vender',{nombre,ci,q});$('nom').value=$('ci').value='';$('qty').value=1;
-    say('m1',`Venta registrada: tickets ${j.venta.tickets.join(', ')}.`,true);await refrescar();openReceipt(j.venta)}
+  try{const j=await act('vender',{nombre,ci,cel,q});$('nom').value=$('ci').value=$('cel').value='';$('qty').value=1;
+    say('m1',`Venta registrada: tickets ${j.venta.tickets.join(', ')}.`,true);openReceipt(j.venta)}
   catch(e){say('m1',e.message)}finally{$('add').disabled=false}}
 
 function drawReceipt(s){
   const x=$('cv').getContext('2d'),W=800,F='"Bricolage Grotesque",sans-serif';
   x.fillStyle='#fff';x.fillRect(0,0,W,1000);x.fillStyle='#0f766e';x.fillRect(0,0,W,150);
   x.fillStyle='#fff';x.font='800 40px '+F;x.fillText(D.config.titulo,50,75);x.font='400 24px '+F;x.fillText('Constancia de compra de tickets',50,115);
-  const L=[['Comprador',s.comprador],['Carnet',s.carnet],['Cantidad',s.tickets.length+' ticket(s)'],['Total pagado',fmt(s.tickets.length*D.config.precio)],['Fecha',s.fecha],['Vendedor',s.vendedor],['Código',s.id.toUpperCase()]];
-  let y=215;L.forEach(([k,v])=>{x.fillStyle='#5d746e';x.font='400 20px '+F;x.fillText(k,50,y);x.fillStyle='#14302b';x.font='600 26px '+F;x.fillText(String(v).slice(0,40),50,y+32);y+=75});
+  const L=[['Comprador',s.comprador],['Carnet',s.carnet],['Celular',s.celular],['Cantidad',s.tickets.length+' ticket(s)'],['Total pagado',fmt(s.tickets.length*D.config.precio)],['Fecha',s.fecha],['Vendedor',s.vendedor],['Código',s.id.toUpperCase()]];
+  let y=215;L.forEach(([k,v])=>{x.fillStyle='#5d746e';x.font='400 20px '+F;x.fillText(k,50,y);x.fillStyle='#14302b';x.font='600 26px '+F;x.fillText(String(v).slice(0,40),50,y+32);y+=68});
   x.fillStyle='#5d746e';x.font='400 20px '+F;x.fillText('Tus números',50,y);
   x.font='800 30px '+F;let px=50,py=y+50;
   s.tickets.forEach(t=>{const w=x.measureText(String(t)).width+34;if(px+w>W-50){px=50;py+=56}
@@ -179,15 +181,15 @@ $('list').onclick=async e=>{
   const rc=e.target.dataset.rc,vd=e.target.dataset.vd;
   if(rc)openReceipt(D.ventas.find(v=>v.id===rc));
   if(vd){const v=D.ventas.find(x=>x.id===vd);if(!confirm(`¿Anular la venta de ${v.comprador}? Sus tickets volverán a estar disponibles.`))return;
-    try{await api('anular',{id:vd});await refrescar()}catch(er){say('m1',er.message)}}};
-$('cSave').onclick=async()=>{try{await api('config',{total:$('cTot').value,precio:$('cPrice').value});say('m4','Guardado.',true);await refrescar()}catch(e){say('m4',e.message)}};
-$('addPz').onclick=async()=>{const n=$('pz').value.trim();if(!n)return;try{await api('premio',{nombre:n});$('pz').value='';await refrescar()}catch(e){say('m2',e.message)}};
+    try{await act('anular',{id:vd})}catch(er){say('m1',er.message)}}};
+$('cSave').onclick=async()=>{try{await act('config',{total:$('cTot').value,precio:$('cPrice').value});say('m4','Guardado.',true)}catch(e){say('m4',e.message)}};
+$('addPz').onclick=async()=>{const n=$('pz').value.trim();if(!n)return;try{await act('premio',{nombre:n});$('pz').value=''}catch(e){say('m2',e.message)}};
 $('go').onclick=async()=>{
   const id=$('sel').value;if(!id)return;$('go').disabled=true;say('m2','');$('who').textContent='Sorteando…';
   try{const j=await api('sortear',{premio:id,una:$('once').checked}),g=j.ganador,quick=matchMedia('(prefers-reduced-motion:reduce)').matches;
     let n=0;const steps=quick?1:26,tick=async()=>{n++;
       if(n<steps){$('num').textContent=1+Math.floor(Math.random()*D.config.total);setTimeout(tick,40+n*6);return}
-      $('num').textContent=g.ticket;$('who').textContent=g.comprador;await refrescar()};tick()}
+      $('num').textContent=g.ticket;$('who').textContent=g.comprador;D=j.s;render()};tick()}
   catch(e){say('m2',e.message);$('who').textContent='Listo para sortear';$('go').disabled=false}};
 $('add').onclick=vender;$('lgo').onclick=entrar;$('out').onclick=()=>salir();
 $('lp').onkeydown=e=>{if(e.key==='Enter')entrar()};
