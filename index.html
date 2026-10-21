@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rifa solidaria</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#f3f7f5;--card:#fff;--ink:#14302b;--mute:#5d746e;--line:#d3e0db;--acc:#0f766e;--accink:#fff;--gold:#f2b705;--bad:#b42318;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1b18;--card:#162824;--ink:#e6f2ee;--mute:#92aaa3;--line:#27403a;--acc:#2dd4bf;--accink:#06201c;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;line-height:1.5}
+main{max-width:900px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.8rem;font-weight:800;margin:0}h2{font-size:1.1rem;margin:0 0 12px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.sub{color:var(--mute);margin:2px 0 0}
+nav{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:3px solid transparent;color:var(--mute);font:inherit;font-weight:600;padding:10px 14px;cursor:pointer}
+nav button[aria-selected=true]{color:var(--ink);border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:4px}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px}
+.row{display:grid;grid-template-columns:2fr 1.3fr .8fr auto;gap:10px;align-items:end}
+.row3{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+@media(max-width:620px){.row,.row3{grid-template-columns:1fr 1fr}}
+button.b{font:inherit;font-weight:600;border:0;border-radius:6px;padding:10px 16px;cursor:pointer;background:var(--acc);color:var(--accink)}
+button.g{background:none;border:1px solid var(--line);color:var(--ink)}
+button.s{padding:5px 10px;font-size:.85rem}
+button.x{background:none;border:0;color:var(--bad);cursor:pointer;font:inherit;font-size:.85rem}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.stats{display:flex;flex-wrap:wrap;gap:22px;margin-bottom:12px}.stats b{font-size:1.45rem;display:block}.stats span{color:var(--mute);font-size:.85rem}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mute);font-weight:600}
+.tk{display:inline-block;min-width:2.2em;text-align:center;border:1px solid var(--line);border-radius:5px;padding:0 5px;margin:1px 2px 1px 0;font-size:.8rem}
+.tk.off{text-decoration:line-through;color:var(--mute)}.tk.win{background:var(--gold);color:#2a2000;border-color:var(--gold);font-weight:700}
+.void{opacity:.55}.void td:first-child{text-decoration:line-through}
+.stage{text-align:center;padding:24px 12px;border-radius:10px;background:var(--acc);color:var(--accink);margin:12px 0}
+.stage .num{font-size:4rem;font-weight:800;line-height:1}.stage .who{font-size:1.5rem;font-weight:600;margin-top:6px;min-height:2rem}
+.opt{display:flex;gap:8px;align-items:center;margin:10px 0;font-size:.92rem}.opt input{width:auto}
+.msg{color:var(--bad);font-size:.9rem;min-height:1.3em;margin-top:8px}.msg.ok{color:var(--acc)}.tag{font-size:.85rem;color:var(--mute)}
+#login{max-width:380px;margin:12vh auto 0}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:94vw;padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.5)}dialog canvas{max-width:100%;max-height:70vh;height:auto;border:1px solid var(--line);border-radius:6px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+<section id="login" class="card">
+  <h1>Rifa solidaria</h1><p class="sub" style="margin-bottom:16px">Ingresa con el usuario y la clave que te dio el organizador.</p>
+  <label for="lu">Usuario</label><input id="lu" autocomplete="username" autocapitalize="none">
+  <label for="lp" style="margin-top:10px">Clave</label><input id="lp" type="password" autocomplete="current-password">
+  <p style="margin:14px 0 0"><button class="b" id="lgo">Entrar</button></p><div class="msg" id="lm" role="status"></div>
+</section>
+
+<div id="app" hidden>
+<div class="top"><div><h1 id="ttl">Rifa solidaria</h1><p class="sub" id="who0"></p></div><button class="b g s" id="out">Salir</button></div>
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-t="v">Ventas</button>
+  <button role="tab" aria-selected="false" data-t="c">Cobranza</button>
+  <button role="tab" aria-selected="false" data-t="a" id="tabA" hidden>Administrador</button>
+</nav>
+
+<section id="v">
+  <div class="card"><h2>Registrar venta</h2>
+    <div class="row">
+      <div><label for="nom">Nombre completo</label><input id="nom" autocomplete="off"></div>
+      <div><label for="ci">Carnet de identidad</label><input id="ci" autocomplete="off"></div>
+      <div><label for="qty">Tickets</label><input id="qty" type="number" min="1" value="1"></div>
+      <button class="b" id="add">Vender</button>
+    </div><div class="msg" id="m1" role="status"></div></div>
+  <div class="card">
+    <div class="stats"><div><b id="sSold">0</b><span>vendidos</span></div><div><b id="sFree">0</b><span>disponibles</span></div><div><b id="sMine">0</b><span>vendidos por ti</span></div></div>
+    <div class="scroll"><table><thead><tr><th>Comprador</th><th>Carnet</th><th>Tickets</th><th>Vendedor</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
+    <p id="empty" class="tag">Aún no hay ventas.</p>
+  </div>
+</section>
+
+<section id="c" hidden>
+  <div class="card"><h2>Dinero a entregar</h2>
+    <div class="scroll"><table><thead><tr><th>Vendedor</th><th>Ventas</th><th>Tickets</th><th>Monto</th></tr></thead><tbody id="cob"></tbody></table></div>
+    <p class="tag" id="cobNote"></p></div>
+</section>
+
+<section id="a" hidden>
+  <div class="card"><h2>Configuración</h2>
+    <div class="row3"><div><label for="cTot">Total de tickets</label><input id="cTot" type="number" min="1"></div><div><label for="cPrice">Precio por ticket (Bs)</label><input id="cPrice" type="number" min="0" step="0.5"></div><button class="b" id="cSave">Guardar</button></div>
+    <div class="msg" id="m4" role="status"></div></div>
+  <div class="card"><h2>Premios y sorteo</h2>
+    <div class="row3" style="grid-template-columns:1fr auto"><div><label for="pz">Nuevo premio</label><input id="pz"></div><button class="b" id="addPz">Agregar premio</button></div>
+    <div class="opt"><input type="checkbox" id="once" checked><label for="once" style="margin:0;color:var(--ink)">Una persona solo gana un premio (se anulan todos sus tickets)</label></div>
+    <label for="sel">Premio a sortear</label><select id="sel"></select>
+    <div class="stage"><small>Ticket ganador</small><div class="num" id="num">?</div><div class="who" id="who">Listo para sortear</div></div>
+    <button class="b" id="go">Sortear ganador</button><div class="msg" id="m2" role="status"></div>
+    <div class="scroll" style="margin-top:12px"><table><thead><tr><th>Premio</th><th>Ticket</th><th>Ganador</th><th>Carnet</th></tr></thead><tbody id="wins"></tbody></table></div></div>
+</section>
+</div>
+</main>
+
+<dialog id="dlg"><canvas id="cv" width="800" height="1000"></canvas>
+  <div class="acts"><button class="b" id="shr">Compartir por WhatsApp</button><button class="b g" id="png">Guardar imagen</button><button class="b g" id="pdf">Guardar PDF</button><button class="b g" id="cls">Cerrar</button></div>
+  <div class="msg" id="m5" role="status"></div></dialog>
+
+<script>
+// 1) Pega aquí la URL de tu implementación de Apps Script (termina en /exec)
+const API_URL = 'https://script.google.com/macros/s/AKfycbw4COY5IQeIuzr7Pn9tTufQEChVK1PBKVcu8ZnnDvihHZiPdN_GpOKiktz53iB2Zgm8iw/exec';
+
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>'Bs '+(Math.round(n*100)/100).toLocaleString('es-BO');
+let token='',D=null,cur=null,timer=null;
+try{token=localStorage.getItem('rifa_t')||''}catch(e){}
+function say(el,t,ok){$(el).className='msg'+(ok?' ok':'');$(el).textContent=t||''}
+
+async function api(a,d){
+  const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({a,t:token},d||{}))});
+  const j=await r.json();if(j.error)throw new Error(j.error);return j}
+function mostrar(app){$('login').hidden=app;$('app').hidden=!app;clearInterval(timer);if(app)timer=setInterval(()=>{if(!document.hidden)refrescar()},15000)}
+function salir(msg){token='';try{localStorage.removeItem('rifa_t')}catch(e){}mostrar(false);say('lm',msg||'')}
+async function entrar(){
+  say('lm','Verificando…');$('lgo').disabled=true;
+  try{const j=await api('login',{u:$('lu').value,p:$('lp').value});token=j.t;try{localStorage.setItem('rifa_t',token)}catch(e){}
+    $('lp').value='';say('lm','');mostrar(true);await refrescar()}
+  catch(e){say('lm',e.message)}finally{$('lgo').disabled=false}}
+async function refrescar(){try{D=await api('state');render()}catch(e){if(/Sesi|ingresar/.test(e.message))salir(e.message)}}
+
+const activas=()=>D.ventas.filter(v=>v.estado!=='ANULADA');
+function render(){
+  const adm=D.me.rol==='admin',act=activas(),used=new Set(act.flatMap(v=>v.tickets)),won=new Set(D.ganadores.map(g=>g.ticket));
+  document.title=$('ttl').textContent=D.config.titulo;
+  $('who0').textContent=D.me.n+(adm?' (administrador)':' (vendedor)');$('tabA').hidden=!adm;
+  $('sSold').textContent=used.size;$('sFree').textContent=Math.max(0,D.config.total-used.size);
+  $('sMine').textContent=act.filter(v=>v.usuario===D.me.u).reduce((a,v)=>a+v.tickets.length,0);
+  const rows=[...D.ventas].reverse();$('empty').hidden=rows.length>0;
+  $('list').innerHTML=rows.map(v=>{const n=v.estado==='ANULADA';
+    return `<tr class="${n?'void':''}"><td>${esc(v.comprador)}${n?'<div class="tag">Anulada</div>':''}</td><td>${esc(v.carnet)}</td><td>${v.tickets.map(t=>`<span class="tk ${won.has(t)?'off':''}">${t}</span>`).join('')}</td><td>${esc(v.vendedor)}</td><td>${n?'':`<button class="b g s" data-rc="${v.id}">Constancia</button>`}${adm&&!n?` <button class="x" data-vd="${v.id}">Anular</button>`:''}</td></tr>`}).join('');
+  const by={};act.forEach(v=>{const o=by[v.usuario]=by[v.usuario]||{n:v.vendedor,c:0,t:0};o.c++;o.t+=v.tickets.length});
+  const ids=Object.keys(by).filter(u=>adm||u===D.me.u);
+  $('cob').innerHTML=ids.map(u=>`<tr><td>${esc(by[u].n)}${u===D.me.u?' (tú)':''}</td><td>${by[u].c}</td><td>${by[u].t}</td><td><b>${fmt(by[u].t*D.config.precio)}</b></td></tr>`).join('')||'<tr><td colspan="4" class="tag">Sin ventas todavía.</td></tr>';
+  $('cobNote').textContent=adm?`Total recaudado: ${fmt(used.size*D.config.precio)}. Las ventas anuladas no suman.`:'Aquí ves solo lo que tú vendiste. Las ventas anuladas no suman.';
+  if(adm){if(!$('cTot').value)$('cTot').value=D.config.total;if(!$('cPrice').value)$('cPrice').value=D.config.precio;
+    const open=D.premios.filter(p=>!D.ganadores.some(g=>g.premioId===p.id)),prev=$('sel').value;
+    $('sel').innerHTML=open.length?open.map(p=>`<option value="${p.id}">${esc(p.premio)}</option>`).join(''):'<option value="">Agrega un premio</option>';
+    if(open.some(p=>p.id===prev))$('sel').value=prev;$('go').disabled=!open.length;
+    $('wins').innerHTML=D.ganadores.map(g=>`<tr><td>${esc(g.premio)}</td><td><span class="tk win">${g.ticket}</span></td><td>${esc(g.comprador)}</td><td>${esc(g.carnet)}</td></tr>`).join('')||'<tr><td colspan="4" class="tag">Todavía no hay ganadores.</td></tr>'}}
+
+async function vender(){
+  const nombre=$('nom').value.trim(),ci=$('ci').value.trim(),q=parseInt($('qty').value,10);
+  if(!nombre||!ci||!(q>0))return say('m1','Completa nombre, carnet y una cantidad mayor a 0.');
+  $('add').disabled=true;say('m1','Registrando…');
+  try{const j=await api('vender',{nombre,ci,q});$('nom').value=$('ci').value='';$('qty').value=1;
+    say('m1',`Venta registrada: tickets ${j.venta.tickets.join(', ')}.`,true);await refrescar();openReceipt(j.venta)}
+  catch(e){say('m1',e.message)}finally{$('add').disabled=false}}
+
+function drawReceipt(s){
+  const x=$('cv').getContext('2d'),W=800,F='"Bricolage Grotesque",sans-serif';
+  x.fillStyle='#fff';x.fillRect(0,0,W,1000);x.fillStyle='#0f766e';x.fillRect(0,0,W,150);
+  x.fillStyle='#fff';x.font='800 40px '+F;x.fillText(D.config.titulo,50,75);x.font='400 24px '+F;x.fillText('Constancia de compra de tickets',50,115);
+  const L=[['Comprador',s.comprador],['Carnet',s.carnet],['Cantidad',s.tickets.length+' ticket(s)'],['Total pagado',fmt(s.tickets.length*D.config.precio)],['Fecha',s.fecha],['Vendedor',s.vendedor],['Código',s.id.toUpperCase()]];
+  let y=215;L.forEach(([k,v])=>{x.fillStyle='#5d746e';x.font='400 20px '+F;x.fillText(k,50,y);x.fillStyle='#14302b';x.font='600 26px '+F;x.fillText(String(v).slice(0,40),50,y+32);y+=75});
+  x.fillStyle='#5d746e';x.font='400 20px '+F;x.fillText('Tus números',50,y);
+  x.font='800 30px '+F;let px=50,py=y+50;
+  s.tickets.forEach(t=>{const w=x.measureText(String(t)).width+34;if(px+w>W-50){px=50;py+=56}
+    x.fillStyle='#f2b705';x.fillRect(px,py-34,w,46);x.fillStyle='#2a2000';x.fillText(String(t),px+17,py);px+=w+10});
+  x.fillStyle='#5d746e';x.font='400 20px '+F;x.fillText('Gracias por tu aporte solidario. Guarda esta constancia.',50,970)}
+function openReceipt(s){cur=s;drawReceipt(s);say('m5','');$('pdf').hidden=!window.jspdf;$('dlg').showModal()}
+const blobPng=()=>new Promise(r=>$('cv').toBlob(r,'image/png'));
+function guardar(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+$('png').onclick=async()=>guardar(`constancia-${cur.id}.png`,await blobPng());
+$('pdf').onclick=()=>{try{const d=new window.jspdf.jsPDF({unit:'mm',format:'a5'});d.addImage($('cv').toDataURL('image/png'),'PNG',0,0,148,185);guardar(`constancia-${cur.id}.pdf`,d.output('blob'))}catch(e){say('m5','No se pudo crear el PDF.')}};
+$('shr').onclick=async()=>{const f=new File([await blobPng()],`constancia-${cur.id}.png`,{type:'image/png'});
+  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:'Constancia de compra de tickets'});return}}catch(e){if(e&&e.name==='AbortError')return}
+  guardar(f.name,f);say('m5','Tu dispositivo no permite compartir directo. Se guardó la imagen: envíala por WhatsApp.')};
+$('cls').onclick=()=>$('dlg').close();
+
+$('list').onclick=async e=>{
+  const rc=e.target.dataset.rc,vd=e.target.dataset.vd;
+  if(rc)openReceipt(D.ventas.find(v=>v.id===rc));
+  if(vd){const v=D.ventas.find(x=>x.id===vd);if(!confirm(`¿Anular la venta de ${v.comprador}? Sus tickets volverán a estar disponibles.`))return;
+    try{await api('anular',{id:vd});await refrescar()}catch(er){say('m1',er.message)}}};
+$('cSave').onclick=async()=>{try{await api('config',{total:$('cTot').value,precio:$('cPrice').value});say('m4','Guardado.',true);await refrescar()}catch(e){say('m4',e.message)}};
+$('addPz').onclick=async()=>{const n=$('pz').value.trim();if(!n)return;try{await api('premio',{nombre:n});$('pz').value='';await refrescar()}catch(e){say('m2',e.message)}};
+$('go').onclick=async()=>{
+  const id=$('sel').value;if(!id)return;$('go').disabled=true;say('m2','');$('who').textContent='Sorteando…';
+  try{const j=await api('sortear',{premio:id,una:$('once').checked}),g=j.ganador,quick=matchMedia('(prefers-reduced-motion:reduce)').matches;
+    let n=0;const steps=quick?1:26,tick=async()=>{n++;
+      if(n<steps){$('num').textContent=1+Math.floor(Math.random()*D.config.total);setTimeout(tick,40+n*6);return}
+      $('num').textContent=g.ticket;$('who').textContent=g.comprador;await refrescar()};tick()}
+  catch(e){say('m2',e.message);$('who').textContent='Listo para sortear';$('go').disabled=false}};
+$('add').onclick=vender;$('lgo').onclick=entrar;$('out').onclick=()=>salir();
+$('lp').onkeydown=e=>{if(e.key==='Enter')entrar()};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  ['v','c','a'].forEach(i=>$(i).hidden=i!==b.dataset.t)});
+if(token){mostrar(true);refrescar()}else mostrar(false);
+</script>
+</body>
+</html>
